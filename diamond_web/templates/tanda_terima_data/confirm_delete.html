@@ -1,0 +1,11 @@
+<div class="alert alert-warning">
+    <h5>Batalkan Tanda Terima</h5>
+    <p>Apakah Anda yakin ingin membatalkan tanda terima "<strong>{{ object }}</strong>"?</p>
+    <form method="post" action="{{ form_action }}" class="mt-3">
+        {% csrf_token %}
+        <div class="modal-footer mt-3 border-top pt-3">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+            <button type="submit" class="btn btn-warning">Konfirmasi Batalkan</button>
+        </div>
+    </form>
+</div>

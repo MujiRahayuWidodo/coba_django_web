@@ -1,0 +1,46 @@
+{% load crispy_forms_tags %}
+<form method="post" action="{{ form_action }}" {% if tanda_terima_id %}data-tanda-terima-id="{{ tanda_terima_id }}"{% endif %}>
+    {% csrf_token %}
+    <div class="modal-body" {% if tanda_terima_id %}data-tanda-terima-id="{{ tanda_terima_id }}"{% endif %}>
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger mb-3">
+                {% for error in form.non_field_errors %}
+                    <p class="mb-0">{{ error }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {{ form.tanggal_tanda_terima|as_crispy_field }}
+        {{ form.nomor_tanda_terima|as_crispy_field }}
+        {{ form.id_ilap|as_crispy_field }}
+
+        {% if form.tiket_ids %}
+        <div class="mb-3">
+            <label class="form-label">{{ form.tiket_ids.label }}</label>
+            <div id="tiket-checkbox-container" style="max-height: 200px; overflow-y: auto; border: 1px solid #dee2e6; padding: 10px; border-radius: 4px;">
+                {% for checkbox in form.tiket_ids %}
+                    <div class="form-check">
+                        {{ checkbox.tag }}
+                        <label class="form-check-label" for="{{ checkbox.id_for_label }}">
+                            {{ checkbox.choice_label }}
+                        </label>
+                    </div>
+                {% endfor %}
+            </div>
+            {% if form.tiket_ids.errors %}
+                <small class="text-danger d-block mt-1">
+                    {% for error in form.tiket_ids.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </small>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+        <button type="submit" class="btn btn-info">
+            <i class="ri-save-line me-1"></i>Simpan
+        </button>
+    </div>
+</form>

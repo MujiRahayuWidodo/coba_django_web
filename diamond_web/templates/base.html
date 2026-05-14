@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diamond Web</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- DataTables Bootstrap 5 CSS -->
+    <link href="//cdn.datatables.net/2.3.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <!-- Remix Icon CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/remixicon/4.6.0/remixicon.min.css" rel="stylesheet">
+    <style>
+        /* AdminLTE-like notification style: icon left in colored circle, title+time row, message below, subtle divider */
+        .notifications-dropdown {
+            min-width: 420px;
+            max-width: 880px;
+            white-space: normal;
+            padding: 0.15rem;
+        }
+
+        .notification-item {
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-start;
+            padding: 0.55rem 0.6rem;
+            border-bottom: 1px solid #eef2f6;
+            background: #fff;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+
+        .notification-item:hover {
+            background: #f6fbff;
+        }
+
+        .notif-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            background: #e9f7ff;
+        }
+
+        .notif-icon .ri-mail-open-line {
+            color: #0d6efd;
+            font-size: 1.15rem;
+        }
+
+        .notif-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .notif-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.5rem;
+            align-items: flex-start;
+        }
+
+        .notif-title {
+            font-size: 0.95rem;
+            margin: 0;
+            color: #0b1220;
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .notif-time {
+            font-size: 0.72rem;
+            color: #6c757d;
+            white-space: nowrap;
+        }
+
+        .notif-message {
+            margin-top: 0.25rem;
+            color: #495057;
+            font-size: 0.85rem;
+            overflow-wrap: anywhere;
+        }
+
+        @media (max-width: 992px) {
+            .notifications-dropdown {
+                min-width: 340px;
+                max-width: 560px;
+            }
+
+            .notif-icon {
+                width: 36px;
+                height: 36px;
+            }
+
+            .notif-icon .ri-mail-open-line {
+                font-size: 1rem;
+            }
+
+            .notif-title {
+                font-size: 0.92rem;
+            }
+
+            .notif-message {
+                font-size: 0.82rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .notifications-dropdown {
+                min-width: 220px;
+                max-width: 320px;
+            }
+
+            .notification-item {
+                padding: 0.45rem 0.5rem;
+                gap: 0.5rem;
+            }
+
+            .notif-icon {
+                width: 32px;
+                height: 32px;
+            }
+
+            .notif-title {
+                font-size: 0.9rem;
+            }
+
+            .notif-message {
+                font-size: 0.78rem;
+            }
+        }
+
+        /* Ensure links inside notification messages don't create their own hover/background
+           and keep colors consistent (avoids nested-anchor visual issues). */
+        .notification-item .notif-message a {
+            color: #0d6efd;
+            text-decoration: underline;
+            background: transparent;
+        }
+
+        .notification-item .notif-message a:hover,
+        .notification-item .notif-message a:focus {
+            color: #0b5ed7;
+            text-decoration: underline;
+            background: transparent;
+        }
+    </style>
+    <style>
+        /* make page stretch to full viewport and keep footer at bottom */
+        html, body { height: 100%; }
+        body { min-height: 100vh; display: flex; flex-direction: column; }
+        .content-container { flex: 1 0 auto; }
+    </style>
+</head>
+
+<body class="bg-light">
+
+    {% include 'navbar.html' %}
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    </div>
+
+    <!-- Django Messages Data (for toasts) -->
+    <div style="display:none;"
+        data-messages='[{% for message in messages %}{"level": "{{ message.level_tag }}", "message": "{{ message|escapejs }}", "tags": "{{ message.tags }}"}{% if not forloop.last %},{% endif %}{% endfor %}]'
+        id="messagesData"></div>
+
+    <main class="content-container container">
+        {% block content %}
+        {% endblock %}
+    </main>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery and DataTables JS (imported for future integration) -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="//cdn.datatables.net/2.3.6/js/dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/2.3.6/js/dataTables.bootstrap5.js"></script>
+    <script>
+        // Standard toast notification function with Indonesian titles
+        function showToast(message, type = 'info', title = null) {
+            const toastId = 'toast-' + Date.now();
+            const bgClass = type === 'success' ? 'bg-success' : type === 'danger' ? 'bg-danger' : type === 'warning' ? 'bg-warning' : 'bg-info';
+            const defaultTitles = {
+                'success': 'Berhasil',
+                'danger': 'Kesalahan',
+                'warning': 'Peringatan',
+                'info': 'Informasi'
+            };
+            const displayTitle = title || defaultTitles[type] || 'Pemberitahuan';
+            const toastHtml = `
+                <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header ${bgClass} text-white">
+                        <strong class="me-auto">${displayTitle}</strong>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                </div>
+            `;
+            const container = document.querySelector('.toast-container');
+            container.insertAdjacentHTML('beforeend', toastHtml);
+            const toastElement = document.getElementById(toastId);
+            const toast = new bootstrap.Toast(toastElement);
+            toast.show();
+            toastElement.addEventListener('hidden.bs.toast', () => toastElement.remove());
+        }
+
+        // Display Django messages as toasts
+        document.addEventListener('DOMContentLoaded', function () {
+            const messagesJson = document.querySelector('[data-messages]');
+            if (messagesJson) {
+                try {
+                    const messages = JSON.parse(messagesJson.dataset.messages);
+                    messages.forEach(msg => {
+                        showToast(msg.message, msg.tags || 'info');
+                    });
+                } catch (e) {
+                    console.error('Error parsing messages:', e);
+                }
+            }
+        });
+
+        // CSRF helper for AJAX POSTs (from Django docs)
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    // Does this cookie string begin with the name we want?
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+
+        // Global jQuery CSRF header for all same-origin unsafe AJAX methods
+        $.ajaxSetup({
+            beforeSend: function (xhr, settings) {
+                const csrfSafeMethod = /^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type);
+                if (!csrfSafeMethod && !this.crossDomain) {
+                    xhr.setRequestHeader('X-CSRFToken', csrftoken);
+                }
+            }
+        });
+
+        // Keep-alive behavior & session warning modal (automatic keep-alive + server-side logout on expiry)
+        (function () {
+            const SESSION_SECONDS = 30 * 60; // must match server SESSION_COOKIE_AGE
+            const WARNING_SECONDS = 60; // show warning 60s before expiry
+            const KEEP_ALIVE_INTERVAL = 10 * 60 * 1000; // POST keep-alive every 10 minutes
+            let expiryTimestamp = Date.now() + SESSION_SECONDS * 1000; // optimistic local expiry
+            let warningTimeoutId, timeoutId, keepAliveIntervalId;
+            let modalShown = false;
+
+            function scheduleTimers() {
+                clearTimers();
+                const msUntilExpiry = expiryTimestamp - Date.now();
+                if (msUntilExpiry <= 0) {
+                    onSessionExpired();
+                    return;
+                }
+                const msUntilWarning = msUntilExpiry - (WARNING_SECONDS * 1000);
+                if (msUntilWarning > 0) {
+                    warningTimeoutId = setTimeout(onShowWarning, msUntilWarning);
+                } else {
+                    // show warning immediately if already within warning window
+                    onShowWarning();
+                }
+                timeoutId = setTimeout(onSessionExpired, msUntilExpiry);
+
+                // Start/restart automatic keep-alive POSTs
+                startKeepAliveInterval();
+            }
+
+            function clearTimers() {
+                if (warningTimeoutId) clearTimeout(warningTimeoutId);
+                if (timeoutId) clearTimeout(timeoutId);
+                if (keepAliveIntervalId) clearInterval(keepAliveIntervalId);
+            }
+
+            function startKeepAliveInterval() {
+                if (keepAliveIntervalId) clearInterval(keepAliveIntervalId);
+                // POST keep-alive periodically to extend session
+                keepAliveIntervalId = setInterval(() => {
+                    sendKeepAlive();
+                }, KEEP_ALIVE_INTERVAL);
+            }
+
+            function sendKeepAlive() {
+                // Silently extend session via POST to keep-alive endpoint
+                fetch('{% url "keep_alive" %}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken,
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({}),
+                }).then(r => {
+                    if (r.ok) return r.json();
+                    throw new Error('keep-alive failed');
+                }).then(data => {
+                    if (data.ok && data.expiry) {
+                        // Update local expiry based on server response
+                        expiryTimestamp = Date.now() + data.expiry * 1000;
+                        // Reschedule warning/timeout to account for fresh expiry
+                        scheduleTimers();
+                    }
+                }).catch(err => {
+                    // keep-alive error; will let normal timeout flow catch it
+                    console.warn('keep-alive failed:', err);
+                });
+            }
+
+            function onShowWarning() {
+                if (modalShown) return;
+                modalShown = true;
+
+                // show modal with countdown
+                const modalHtml = `
+                <div class="modal fade" id="sessionWarningModal" tabindex="-1" aria-hidden="true">
+                  <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                      <div class="modal-header">
+                        <h5 class="modal-title">Session expiring</h5>
+                      </div>
+                      <div class="modal-body">
+                        <p>Your session will expire in <span id="sessionCountdown">${WARNING_SECONDS}</span> seconds of inactivity.</p>
+                        <p>Session will be automatically kept alive while you are active.</p>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+                const modalEl = document.getElementById('sessionWarningModal');
+                const bsModal = new bootstrap.Modal(modalEl, { backdrop: 'static' });
+                bsModal.show();
+
+                const countdownEl = document.getElementById('sessionCountdown');
+                let remaining = Math.max(0, Math.floor((expiryTimestamp - Date.now()) / 1000));
+                const countdownInterval = setInterval(() => {
+                    remaining = Math.max(0, Math.floor((expiryTimestamp - Date.now()) / 1000));
+                    countdownEl.textContent = remaining;
+                    if (remaining <= 0) {
+                        clearInterval(countdownInterval);
+                    }
+                }, 1000);
+
+                // remove modal from DOM when hidden
+                modalEl.addEventListener('hidden.bs.modal', () => {
+                    clearInterval(countdownInterval);
+                    document.getElementById('sessionWarningModal')?.remove();
+                    modalShown = false;
+                });
+            }
+
+            function onSessionExpired() {
+                // clear timers and call server-side logout endpoint, then redirect
+                clearTimers();
+                showToast('Sesi Anda telah berakhir. Keluar.', 'info', 'Sesi');
+
+                // POST to session-expired endpoint to log out server-side
+                fetch('{% url "session_expired" %}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken,
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({}),
+                }).then(() => {
+                    // Redirect to login with next to current path
+                    const next = encodeURIComponent(window.location.pathname + window.location.search);
+                    window.location.href = '/accounts/login/?next=' + next;
+                }).catch(() => {
+                    // Redirect even if logout endpoint fails
+                    const next = encodeURIComponent(window.location.pathname + window.location.search);
+                    window.location.href = '/accounts/login/?next=' + next;
+                });
+            }
+
+            // Reset expiryTimestamp on user activity (avoid accidental expiry while active)
+            function onUserActivity() {
+                // optimistic: extend local expiry
+                expiryTimestamp = Date.now() + SESSION_SECONDS * 1000;
+                scheduleTimers();
+            }
+
+            ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'].forEach(evt => document.addEventListener(evt, onUserActivity, { passive: true }));
+
+            // Initialize timers
+            scheduleTimers();
+
+            // Global AJAX / fetch wrapper to handle 401 responses and redirect to login
+            const origFetch = window.fetch;
+            window.fetch = function () {
+                return origFetch.apply(this, arguments).then(response => {
+                    if (response.status === 401 || response.status === 403) {
+                        // Session likely expired; redirect to login preserving next
+                        const next = encodeURIComponent(window.location.pathname + window.location.search);
+                        window.location.href = '/accounts/login/?next=' + next;
+                        return Promise.reject(new Error('Unauthorized'));
+                    }
+                    return response;
+                });
+            };
+
+        })();
+
+        // Inactivity timeout (30 minutes) - fallback client side for pages without modal
+        (function () {
+            const TIMEOUT_SECONDS = 30 * 60; // 30 minutes
+            let timerId;
+
+            function startTimer() {
+                clearTimer();
+                timerId = setTimeout(onTimeout, TIMEOUT_SECONDS * 1000);
+            }
+
+            function clearTimer() {
+                if (timerId) {
+                    clearTimeout(timerId);
+                }
+            }
+
+            function onUserEvent() {
+                // reset timer on user activity
+                startTimer();
+            }
+
+            function onTimeout() {
+                // Optional: show a toast informing the user
+                try {
+                    showToast('Sesi Anda telah habis. Mengalihkan ke beranda.', 'info', 'Sesi');
+                } catch (e) {
+                    console.warn('Could not show toast before redirect:', e);
+                }
+
+                // Redirect to homepage (root)
+                window.location.href = '/';
+            }
+
+            // Events that count as activity
+            const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
+            events.forEach(evt => document.addEventListener(evt, onUserEvent, { passive: true }));
+
+            // Start timer when page loads
+            document.addEventListener('DOMContentLoaded', startTimer);
+
+            // Also start immediately in case DOMContentLoaded already fired
+            if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                startTimer();
+            }
+        })();
+        // Make notification items (divs with data-href) clickable while allowing inner links to work.
+        document.addEventListener('click', function (ev) {
+            try {
+                var target = ev.target;
+                var item = target.closest && target.closest('.notification-item');
+                if (!item) return;
+                // If the click originated on a real link inside the message, let it proceed.
+                var innerLink = target.closest && target.closest('.notif-message a');
+                if (innerLink) return;
+                var href = item.dataset && item.dataset.href;
+                if (href) {
+                    window.location.href = href;
+                }
+            } catch (e) { console.warn('notification click handler error', e); }
+        }, false);
+
+        // Keyboard accessibility: Enter/Space activate notification item
+        document.addEventListener('keydown', function (ev) {
+            if (ev.key !== 'Enter' && ev.key !== ' ') return;
+            var active = document.activeElement;
+            if (!active) return;
+            if (active.classList && active.classList.contains('notification-item')) {
+                // avoid when focus is on an inner link
+                var innerLink = active.querySelector('.notif-message a:focus');
+                if (innerLink) return;
+                var href = active.dataset && active.dataset.href;
+                if (href) {
+                    ev.preventDefault();
+                    window.location.href = href;
+                }
+            }
+        }, false);
+    </script>
+
+    <footer class="mt-4 py-2 bg-white border-top">
+        <div class="container text-center small text-muted">
+            Commit: {{ git_commit|default:"n/a" }}
+            {% if git_commit_info.branch %} &middot; {{ git_commit_info.branch }}{% endif %}
+            {% if git_commit_info.date %} &middot; {{ git_commit_info.date }}{% endif %}
+        </div>
+    </footer>
+
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>
