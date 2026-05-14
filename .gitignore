@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Django
 *.log
 *.pot
@@ -45,3 +46,44 @@ htmlcov/
 # **/migrations/__pycache__/
 
 packages/
+=======
+# --- Python ---
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.egg-info/
+.eggs/
+*.egg
+
+# --- Virtual Environment ---
+.venv/
+venv/
+env/
+ENV/
+
+# --- Django ---
+*.log
+*.pot
+*.pyc
+db.sqlite3
+media/
+staticfiles/
+
+# --- Environment Variables ---
+.env
+*.env.local
+
+# --- IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- OneDrive Sync (PENTING untuk path Anda) ---
+*.sync*
+>>>>>>> cd3e56c59ccf7ab44a93fcfe70c2af3823da149d
